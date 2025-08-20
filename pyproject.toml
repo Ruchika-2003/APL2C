@@ -1,0 +1,62 @@
+[project]
+name = "finch-tensor-lite"
+description = ""
+version = "0.1.0"
+readme = "README.md"
+authors = [{name = "Willow Ahrens", email = "willow.marie.ahrens@gmail.com"}]
+requires-python = '>=3.11,<4.0'
+dependencies = ['numpy>=1.19', 'numba>=0.61', 'donfig>=0.8.1.post1,<0.9.0']
+
+[tool.poetry]
+packages = [{include = "finch", from = "src"}]
+requires-poetry = '>=2.0,<3.0'
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.4,<8",
+    "pre-commit>=3.6.0,<4",
+    "pytest-cov>=4.1.0,<5",
+    "sparse>=0.17.0",
+    "scipy>=1.7,<2",
+    "numpy>=0.61.0",
+    "mypy==1.15.*",
+    "pytest-mypy==1.*",
+    "pytest-regressions~=2.8.1",
+]
+
+[build-system]
+requires = ["poetry-core>=1.0.8"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+extend-exclude = [
+    "tests/reference",
+]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "B", "UP", "YTT", "BLE", "C4", "T10", "ISC", "ICN", "PIE", "PYI", "RSE", "RET", "SIM", "PGH", "FLY", "NPY", "PERF", "RUF022"]
+ignore = ["PYI024"]
+
+[tool.ruff.lint.isort.sections]
+numpy = ["numpy", "numpy.*", "scipy", "scipy.*"]
+pytest = ["pytest", "pytest.*"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+[tool.ruff.lint.isort]
+section-order = [
+    "future",
+    "standard-library",
+    "pytest",
+    "numpy",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+exclude = ["tests/reference"]
