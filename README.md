@@ -1,4 +1,4 @@
-# APL2C
+# Assignment: APL2C
 
 A python compiler that translates APL code to C code.
 
@@ -15,8 +15,6 @@ to install the current project and dev dependencies.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, development setup, and best practices.
 
 
-## Assignment: Implementing APL Codegen Functions
-
 ### Overview
 
 APL2C is a compiler that translates [APL](https://xpqz.github.io/learnapl/intro.html), an array-oriented programming language known for its concise syntax and powerful multi-dimensional array operations, into C code for efficient execution. The project comprises two main components:
@@ -24,13 +22,14 @@ APL2C is a compiler that translates [APL](https://xpqz.github.io/learnapl/intro.
 1. **Interpreter** (`src/apl2c/apl/interpreter.py`):
    - Executes APL operations directly in Python using NumPy for efficient array manipulation.
    - Defines functions such as `_add`, `_sub`, `_neg`, `_exp`, `_transpose`, `_iota`, `_reshape`, and `_reduce`, which implement the semantics of APL operations.
-   - Serves as the reference for the expected behavior of each operation, providing a ground truth for your implementations.
+   - Serves as the reference for the expected behavior of each operation which is the __ground truth for your implementations__.
+   - You __should not__ modify these functions.
 
 2. **Codegen** (`src/apl2c/apl/codegen.py`):
    - Generates C code for APL operations, producing `NumpyBuffer` structs that interface with NumPy arrays in C.
-   - The generated C code is compiled and executed, aiming to replicate the interpreter’s output exactly.
+   - The generated C code is compiled and executed.
 
-Your task is to implement the codegen functions (`_c_add`, `_c_sub`, `_c_neg`, `_c_exp`, `_c_transpose`, `_c_iota`, `_c_reshape`, `_c_reduce`) in `src/apl2c/apl/codegen.py` to generate C code that matches the behavior of the corresponding interpreter functions.
+**Your task is to implement the codegen functions (`_c_add`, `_c_sub`, `_c_neg`, `_c_exp`, `_c_transpose`, `_c_iota`, `_c_reshape`, `_c_reduce`) in `src/apl2c/apl/codegen.py` to generate C code that matches the behavior of the corresponding interpreter functions.**
 
 ### Task Description
 
@@ -58,7 +57,7 @@ The interpreter defines the expected behavior of APL operations using NumPy. Key
 
 - `_add(ctx, arr1, arr2)`: Returns `NumpyBuffer(np.add(arr1.arr, arr2.arr, dtype=np.int64))`.
 - `_reshape(ctx, buf, shape)`: Returns `NumpyBuffer(np.reshape(buf.arr, shape, order='C'))`.
-- `_reduce(ctx, buf)`: Returns `NumpyBuffer(np.sum(buf.arr, axis=-1, dtype=np.int64))`, wrapping scalars in 0D arrays for 1D inputs.
+- `_reduce(ctx, buf)`: Returns `NumpyBuffer(np.sum(buf.arr, axis=-1, dtype=np.int64))`, wrapping scalars in 1D arrays for 1D inputs.
 - Study these functions to understand the input/output behavior your C code must replicate.
 
 #### Codegen Functions (`src/apl2c/apl/codegen.py`)
@@ -80,6 +79,11 @@ The interpreter defines the expected behavior of APL operations using NumPy. Key
   - `c_alloc(ctx, shape)`: Allocates a `NumpyBuffer` with the specified shape.
   - `c_load(ctx, arr, indices)`: Loads an element at the given indices.
   - `c_store(ctx, arr, indices, value)`: Stores a value at the given indices.
+
+### Tests (`tests/test_codegen.py`)
+
+We have provided a few test cases for the functions that we want to you to fill. Please remove the pytest skips, as you complete the implementations
+of the specific functions. 
 
 ### Implementation Guidance
 
@@ -108,6 +112,14 @@ The interpreter defines the expected behavior of APL operations using NumPy. Key
   }
   ```
 
+### Bonus
+
+We would like to present you with the following options to avail a bonus:
+1. Implement additional operations such as dot products, mul-reduce, etc. Please add the specific interpreter functions in `interpreter.py` and the corresponding codegen functions in `codegen.py`. Add test cases for these new operations in `test_apl_codegen.py`. Include a brief description of the new operation as a docstring in the codegen function.
+2. Implement a parser that can parse a subset of APL syntax and generate an Abstract Syntax Tree (AST). This parser should be able to handle basic APL expressions and convert them into a format that can be processed by the existing codegen functions. You can create a new file `parser.py` in the `src/apl2c/apl/` directory for this purpose. Add test cases for the parser in a new test file `test_parser.py`.
+
+You have the discretion to choose either one of the above options for a bonus. Please ensure that your code is well-documented and includes test cases to validate the functionality of the new features you implement.
+
 ### Additional Information
 
 - **Environment Setup**:
@@ -127,3 +139,4 @@ The interpreter defines the expected behavior of APL operations using NumPy. Key
 - Ensure all tests in `tests/test_apl_codegen.py` pass, verifying that codegen output matches interpreter output.
 - Adhere to coding standards in `CONTRIBUTING.md` (e.g., consistent indentation, clear variable names).
 - Do not modify `interpreter.py`, `numpy_buffer.py`, or other files unless explicitly instructed.
+- For submission, please zip the root folder of the project, ensuring all your changes are included and submit it on Canvas.
