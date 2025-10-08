@@ -20,16 +20,18 @@ from apl2c.codegen import NumpyBuffer, NumpyBufferFType
 def test_mk_array(values, expected):
     A = apl.Variable("A", NumpyBufferFType(np.int64, 1))
 
+    params = tuple(apl.Variable(f"v{i}", int) for i in range(len(values)))
+
     test_function = apl.Function(
         apl.Variable("test_mk_array", NumpyBufferFType(np.int64, 1)),
-        (),  # no parameters
+        params,  # no parameters
         apl.Block(
             (
                 apl.Assign(
                     lhs=A,
                     rhs=apl.Call(
                         op=apl.Literal("mkArray"),
-                        args=tuple([apl.Literal(v) for v in values]),
+                        args=params,
                     ),
                 ),
                 apl.Return(A),
@@ -42,8 +44,8 @@ def test_mk_array(values, expected):
     mod_codegen = APL2CCompiler()(prgm)
     mod_interpreter = APLInterpreter()(prgm)
 
-    expected = mod_interpreter.test_mk_array().arr
-    result = mod_codegen.test_mk_array().arr
+    expected = mod_interpreter.test_mk_array(*values).arr
+    result = mod_codegen.test_mk_array(*values).arr
     assert np.array_equal(result, expected), (
         f"Codegen result {result} does not match interpreter result {expected}"
     )
@@ -162,19 +164,21 @@ def test_operations(op, inputs, expected):
 
     prgm = apl.Module((test_function,))
 
-    #Run with APL Interpreter
+    # Run with APL Interpreter
     mod_interpreter = APLInterpreter()(prgm)
     expected = getattr(mod_interpreter, f"test_{op}")(
         *[NumpyBuffer(x) if isinstance(x, np.ndarray) else x for x in inputs]
     ).arr
 
-    #Run with APL2C Compiler
+    # Run with APL2C Compiler
     mod_codegen = APL2CCompiler()(prgm)
     result = getattr(mod_codegen, f"test_{op}")(
         *[NumpyBuffer(x) if isinstance(x, np.ndarray) else x for x in inputs]
     ).arr
 
-    assert np.array_equal(result, expected), f"Codegen result {result} does not match interpreter result {expected}"
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {expected}"
+    )
     assert result.dtype == np.int64
 
 
@@ -232,44 +236,46 @@ def test_exp(input_array, power, expected):
 
     prgm = apl.Module((test_function,))
 
-    #Run with APL2C Compiler
+    # Run with APL2C Compiler
     mod_codegen = APL2CCompiler()(prgm)
     result = mod_codegen.test_exp(NumpyBuffer(input_array), power.val).arr
 
-    #Run with APL Interpreter
+    # Run with APL Interpreter
     mod_interpreter = APLInterpreter()(prgm)
     expected = mod_interpreter.test_exp(NumpyBuffer(input_array), power.val).arr
-    assert np.array_equal(result, expected), f"Codegen result {result} does not match interpreter result {expected}"
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {expected}"
+    )
     assert result.dtype == np.int64
 
 @pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
-"input_array, expected",
-[
-    # 1D cases (transpose is no-op)
-    (
-        np.array([1, 2, 3], dtype=np.int64),
-        np.array([1, 2, 3], dtype=np.int64),
-    ),
-    (
-        np.array([4, 5], dtype=np.int64),
-        np.array([4, 5], dtype=np.int64),
-    ),
-    # 2D cases
-    (
-        np.array([[1, 2], [3, 4]], dtype=np.int64),
-        np.array([[1, 3], [2, 4]], dtype=np.int64),
-    ),
-    (
-        np.array([[1]], dtype=np.int64),
-        np.array([[1]], dtype=np.int64),
-    ),
-    # Additional 2D case with non-square shape
-    (
-        np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int64),
-        np.array([[1, 4], [2, 5], [3, 6]], dtype=np.int64),
-    ),
-],
+    "input_array, expected",
+    [
+        # 1D cases (transpose is no-op)
+        (
+            np.array([1, 2, 3], dtype=np.int64),
+            np.array([1, 2, 3], dtype=np.int64),
+        ),
+        (
+            np.array([4, 5], dtype=np.int64),
+            np.array([4, 5], dtype=np.int64),
+        ),
+        # 2D cases
+        (
+            np.array([[1, 2], [3, 4]], dtype=np.int64),
+            np.array([[1, 3], [2, 4]], dtype=np.int64),
+        ),
+        (
+            np.array([[1]], dtype=np.int64),
+            np.array([[1]], dtype=np.int64),
+        ),
+        # Additional 2D case with non-square shape
+        (
+            np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int64),
+            np.array([[1, 4], [2, 5], [3, 6]], dtype=np.int64),
+        ),
+    ],
 )
 def test_transpose(input_array, expected):
     ndim = input_array.ndim
@@ -295,15 +301,17 @@ def test_transpose(input_array, expected):
 
     prgm = apl.Module((test_function,))
 
-    #Run with APL2C Compiler
+    # Run with APL2C Compiler
     mod_codegen = APL2CCompiler()(prgm)
     result = mod_codegen.test_transpose(NumpyBuffer(input_array)).arr
 
-    #Run with APL2C Interpreter
+    # Run with APL2C Interpreter
     mod_interpreter = APLInterpreter()(prgm)
     expected = mod_interpreter.test_transpose(NumpyBuffer(input_array)).arr
 
-    assert np.array_equal(result, expected), f"Codegen result {result} does not match interpreter result {expected}"
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {expected}"
+    )
     assert result.dtype == np.int64
 
 @pytest.mark.skip(reason="Delete this line once ops are implemented")
@@ -362,38 +370,40 @@ def test_iota(range_val, expected):
     expected = mod_interpreter.test_iota(range_val.val).arr
 
     # Compare results
-    assert np.array_equal(result, expected), f"Codegen result {result} does not match interpreter result {res}"
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {result}"
+    )
     assert result.dtype == np.int64
     assert expected.dtype == np.int64
 
 @pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
-"input_array, expected",
-[
-    # 1D cases (reduce to 0D)
-    (
-        np.array([1, 2, 3], dtype=np.int64),
-        np.array(6, dtype=np.int64),
-    ),
-    (
-        np.array([4, 5], dtype=np.int64),
-        np.array(9, dtype=np.int64),
-    ),
-    # 2D cases (reduce to 1D)
-    (
-        np.array([[1, 2], [3, 4]], dtype=np.int64),
-        np.array([3, 7], dtype=np.int64),
-    ),
-    (
-        np.array([[1]], dtype=np.int64),
-        np.array([1], dtype=np.int64),
-    ),
-    # Additional 2D case with non-square shape
-    (
-        np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int64),
-        np.array([6, 15], dtype=np.int64),
-    ),
-],
+    "input_array, expected",
+    [
+        # 1D cases (reduce to 0D)
+        (
+            np.array([1, 2, 3], dtype=np.int64),
+            np.array(6, dtype=np.int64),
+        ),
+        (
+            np.array([4, 5], dtype=np.int64),
+            np.array(9, dtype=np.int64),
+        ),
+        # 2D cases (reduce to 1D)
+        (
+            np.array([[1, 2], [3, 4]], dtype=np.int64),
+            np.array([3, 7], dtype=np.int64),
+        ),
+        (
+            np.array([[1]], dtype=np.int64),
+            np.array([1], dtype=np.int64),
+        ),
+        # Additional 2D case with non-square shape
+        (
+            np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int64),
+            np.array([6, 15], dtype=np.int64),
+        ),
+    ],
 )
 def test_reduce(input_array, expected):
     ndim = input_array.ndim
@@ -429,7 +439,9 @@ def test_reduce(input_array, expected):
     expected = mod_interpreter.test_reduce(NumpyBuffer(input_array)).arr
 
     # Compare results
-    assert np.array_equal(result, expected), f"Codegen result {result} does not match interpreter result {expected}"
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {expected}"
+    )
     assert result.dtype == np.int64
     assert expected.dtype == np.int64
 
@@ -438,25 +450,29 @@ def test_reduce(input_array, expected):
     "shape, input_array, expected",
     [
         (
-            (2, 3),
+            [2, 3],
             np.array([1, 2, 3, 4], dtype=np.int64),
             np.array([[1, 2, 3], [4, 1, 2]], dtype=np.int64),
         ),
         (
-            (3,),
+            [3],
             np.array([1], dtype=np.int64),
             np.array([1, 1, 1], dtype=np.int64),
         ),
     ],
 )
 def test_reshape(shape, input_array, expected):
-    shape_var = apl.Variable("Shape", tuple)
     a_var = apl.Variable("A", NumpyBufferFType(np.int64, input_array.ndim))
     b_var = apl.Variable("B", NumpyBufferFType(np.int64, len(shape)))
 
+    params = tuple(apl.Variable(f"shape_{i}", int) for i in range(len(shape)))
+
     test_function = apl.Function(
         apl.Variable("test_reshape", NumpyBufferFType(np.int64, len(shape))),
-        (shape_var, a_var),
+        (
+            a_var,
+            *params,
+        ),
         apl.Block(
             (
                 apl.Assign(
@@ -465,7 +481,7 @@ def test_reshape(shape, input_array, expected):
                         op=apl.Literal("reshape"),
                         args=(
                             a_var,
-                            shape_var,
+                            *params,
                         ),
                     ),
                 ),
@@ -479,7 +495,9 @@ def test_reshape(shape, input_array, expected):
     mod_interpreter = APLInterpreter()(prgm)
     mod_codegen = APL2CCompiler()(prgm)
 
-    expected = mod_interpreter.test_reshape(shape, NumpyBuffer(input_array)).arr
-    result = mod_codegen.test_reshape(shape, NumpyBuffer(input_array)).arr
-    assert np.array_equal(result, expected), f"Codegen result {result} does not match interpreter result {expected}"
+    expected = mod_interpreter.test_reshape(NumpyBuffer(input_array), *shape).arr
+    result = mod_codegen.test_reshape(NumpyBuffer(input_array), *shape).arr
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {expected}"
+    )
     assert result.dtype == np.int64

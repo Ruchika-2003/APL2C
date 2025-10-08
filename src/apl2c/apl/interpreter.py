@@ -234,7 +234,7 @@ def _iota(ctx, n):
     return NumpyBuffer(np.arange(1, n + 1, dtype=np.int64))
 
 
-def _reshape(ctx, buf, shape):
+def _reshape(ctx, buf, *args):
     """
     Reshape the input array to the given shape, cycling or truncating elements.
 
@@ -244,8 +244,9 @@ def _reshape(ctx, buf, shape):
         The interpreter context (not used in this function).
     buf : NumpyBuffer
         The input array to reshape.
-    shape : tuple
-        A tuple of positive integers specifying the target shape.
+    *args : tuple
+        Variable number of scalar values (integers, floats, or
+        other numeric types) to form the array elements.
 
     Returns
     -------
@@ -256,7 +257,7 @@ def _reshape(ctx, buf, shape):
     arr = buf.arr
 
     try:
-        int_shape = tuple(int(s) for s in shape)
+        int_shape = tuple(int(s) for s in args)
         if not all(s > 0 for s in int_shape):
             raise ValueError("Shape elements must be positive integers")
     except (ValueError, TypeError) as err:
@@ -443,7 +444,7 @@ class APLInterpreter:
                                         )
                                 ctx_2.bindings[arg_n] = arg_e
                             case apl.Literal(value):
-                                if not isinstance(arg_e, (int, float)):
+                                if not isinstance(arg_e, int | float):
                                     raise TypeError(
                                         f"Literal argument expected to be numeric, "
                                         f"but got {type(arg_e)}."

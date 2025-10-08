@@ -135,16 +135,24 @@ class NumpyBufferFType(CBufferFType):
         if self not in numpy_buffer_types:
             # Get the ctypes pointer type for the element type
             data_t = ctypes.POINTER(c_type(self._dtype))
+            dtype_name = np.dtype(self._dtype).name  # e.g. "int64", "float32"
+            struct_name = f"CNumpyBuffer_{dtype_name}_{self._ndim}"
+            shape_c_type = c_type(self.shape_type)
 
-            class CNumpyBuffer(ctypes.Structure):
-                _fields_ = [
-                    ("arr", ctypes.py_object),
-                    ("data", data_t),
-                    ("length", ctypes.c_size_t),
-                    ("shape", c_type(self.shape_type)),
-                ]
+            CNumpyBufferType = type(
+                struct_name,
+                (ctypes.Structure,),
+                {
+                    "_fields_": [
+                        ("arr", ctypes.py_object),
+                        ("data", data_t),
+                        ("length", ctypes.c_size_t),
+                        ("shape", shape_c_type),
+                    ]
+                },
+            )
 
-            numpy_buffer_types[self] = CNumpyBuffer
+            numpy_buffer_types[self] = CNumpyBufferType
         return numpy_buffer_types[self]
 
     def c_type(self):

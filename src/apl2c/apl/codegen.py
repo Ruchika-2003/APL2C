@@ -101,7 +101,7 @@ register_property(
 
 def _c_add(ctx, arr1: apl.Variable, arr2: apl.Variable):
     """
-    Assignment: Implement the _c_add function to generate C code for element-wise 
+    Assignment: Implement the _c_add function to generate C code for element-wise
                 addition of two arrays.
 
     Parameters
@@ -117,12 +117,13 @@ def _c_add(ctx, arr1: apl.Variable, arr2: apl.Variable):
     Returns
     -------
     str
-        The name of the result variable (a string) that represents the output 
+        The name of the result variable (a string) that represents the output
         NumpyBuffer in the generated C code.
     """
     
     #Start your implementation here. 
     pass
+
 
 register_property(
     "add",
@@ -297,7 +298,6 @@ register_property(
 
 
 def _c_reduce(ctx, buf: apl.Variable):
-    
     """
     Assignment: Implement the _c_reduce function to generate C code for summing elements along the last dimension.
 
@@ -314,8 +314,9 @@ def _c_reduce(ctx, buf: apl.Variable):
     str
         The name of the result variable (a string) that represents the output NumpyBuffer in the generated C code.
     """
+
     
-    #Start your implementation here.
+    #Start your implementation here. 
     pass
 
 
@@ -323,16 +324,18 @@ register_property(
     "reduce",
     "__call__",
     "return_type",
-    lambda op, *arg_types: arg_types[0]
+    lambda op, *arg_types: NumpyBufferFType(
+        arg_types[0].element_type,
+        max(0, arg_types[0].ndim - 1),
+    )
     if arg_types and isinstance(arg_types[0], NumpyBufferFType)
-    else NumpyBufferFType(np.int64, 1),
+    else NumpyBufferFType(np.int64, 0),
 )
 
 
-def _c_reshape(ctx, buf, shape):
+def _c_reshape(ctx, buf: apl.Variable, *shape_dims):
     """
     Assignment: Implement the _c_reshape function to generate C code for reshaping an array to a new shape.
-
     Parameters
     ----------
     ctx : APL2CContext
@@ -340,26 +343,21 @@ def _c_reshape(ctx, buf, shape):
     buf : apl.Variable
         The input array, represented as an apl.Variable with type NumpyBufferFType(np.int64, ndim),
         where ndim is the number of dimensions (e.g., 1 for 1D arrays, 2 for 2D arrays).
-    shape : apl.Literal
-        A literal value (e.g., Literal((2, 3))) representing the new shape as a tuple or list of integers.
-
+    *shape_dims : new shape dimensions, as a list of apl nodes.
     Returns
     -------
     str
         The name of the result variable (a string) that represents the output NumpyBuffer in the generated C code.
-
     """
-    
     #Start your implementation here. 
     pass
+
 
 register_property(
     "reshape",
     "__call__",
     "return_type",
-    lambda op, *arg_types: arg_types[0]
-    if arg_types and isinstance(arg_types[0], NumpyBufferFType)
-    else NumpyBufferFType(np.int64, 1),
+    lambda op, buf_t, *shape_ts: NumpyBufferFType(np.int64, len(shape_ts)),
 )
 
 dispatch: dict[str, Callable[..., Any]] = {

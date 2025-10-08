@@ -339,12 +339,12 @@ def test_iota(n, expected):
     "shape, input_array, expected",
     [
         (
-            (2, 3),
+            np.array([2, 3], dtype=np.int64),
             np.array([1, 2, 3, 4], dtype=np.int64),
             np.array([[1, 2, 3], [4, 1, 2]], dtype=np.int64),
         ),
         (
-            (3,),
+            np.array([3], dtype=np.int64),
             np.array([1], dtype=np.int64),
             np.array([1, 1, 1], dtype=np.int64),
         ),
@@ -352,14 +352,13 @@ def test_iota(n, expected):
 )
 def test_reshape(shape, input_array, expected):
     # Create variables
-    shape_var = apl.Variable("Shape", tuple)
     a_var = apl.Variable("A", NumpyBufferFType(np.int64, input_array.ndim))
     b_var = apl.Variable("B", NumpyBufferFType(np.int64, len(shape)))
 
     # Define test function
     test_function = apl.Function(
         apl.Variable("test_reshape", NumpyBufferFType(np.int64, len(shape))),
-        (shape_var, a_var),
+        (a_var,),
         apl.Block(
             (
                 apl.Assign(
@@ -368,7 +367,7 @@ def test_reshape(shape, input_array, expected):
                         op=apl.Literal("reshape"),
                         args=(
                             a_var,
-                            shape_var,
+                            *[apl.Literal(s) for s in shape],
                         ),
                     ),
                 ),
@@ -381,7 +380,7 @@ def test_reshape(shape, input_array, expected):
     prgm = apl.Module((test_function,))
 
     mod = APLInterpreter()(prgm)
-    result = mod.test_reshape(shape, NumpyBuffer(input_array)).arr
+    result = mod.test_reshape(NumpyBuffer(input_array)).arr
     assert np.array_equal(result, expected)
     assert result.dtype == np.int64
 

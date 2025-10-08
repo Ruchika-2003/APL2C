@@ -12,7 +12,10 @@ import apl2c.example_lang as exmpl
 from apl2c import ftype
 from apl2c.codegen import (
     NumpyBuffer,
-    NumpyBufferFType,
+)
+from apl2c.example_lang import (
+    Example2CCompiler,
+    Example2CGenerator,
 )
 from apl2c.example_lang import (
     Example2CCompiler,
@@ -32,7 +35,6 @@ def test_add_function():
     f = apl2c.codegen.c.load_shared_lib(c_code).add
     result = f(3, 4)
     assert result == 7, f"Expected 7, got {result}"
-
 
 
 @pytest.mark.parametrize(

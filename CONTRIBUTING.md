@@ -2,6 +2,10 @@
 
 Thank you for your interest in contributing! Please read the following guidelines to help us maintain a high-quality, collaborative codebase.
 
+## git flow
+
+Changes to the assignment should be made on the main branch wherever possible. If you need to delete something from the code so students don't see it, please make the deletions on student branch. The assignment itself is on the assignment branch, and we merge student to assignment. Merges from student to assignment can be made by running `git merge -Xtheirs --squash student` from the assignment branch. This will keep answers out of the git history.
+
 ## Code of Conduct
 
 We adhere to the [Python Code of Conduct](https://policies.python.org/python.org/code-of-conduct/).
