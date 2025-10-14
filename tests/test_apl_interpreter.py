@@ -428,3 +428,102 @@ def test_transpose(input_array, expected):
     result = mod.test_transpose(NumpyBuffer(input_array)).arr
     assert np.array_equal(result, expected)
     assert result.dtype == np.int64
+
+@pytest.mark.parametrize(
+    "arr1, arr2, expected",
+    [
+        (
+            np.array([1, 2, 3], dtype=np.int64),
+            np.array([4, 5, 6], dtype=np.int64),
+            np.array(32, dtype=np.int64),
+        ),
+        (
+            np.array([1], dtype=np.int64),
+            np.array([9], dtype=np.int64),
+            np.array(9, dtype=np.int64),
+        ),
+        (
+            np.array([2, 0, -1], dtype=np.int64),
+            np.array([3, 4, 5], dtype=np.int64),
+            np.array(1, dtype=np.int64),
+        ),
+    ],
+)
+def test_dot(arr1, arr2, expected):
+    # Create variables
+    a_var = apl.Variable("A", NumpyBufferFType(np.int64, 1))
+    b_var = apl.Variable("B", NumpyBufferFType(np.int64, 1))
+    c_var = apl.Variable("C", NumpyBufferFType(np.int64, 0))  # scalar output
+
+    # Define test function
+    test_function = apl.Function(
+        apl.Variable("test_dot", NumpyBufferFType(np.int64, 0)),
+        (a_var, b_var),
+        apl.Block(
+            (
+                apl.Assign(
+                    lhs=c_var,
+                    rhs=apl.Call(
+                        op=apl.Literal("dot"),
+                        args=(a_var, b_var),
+                    ),
+                ),
+                apl.Return(c_var),
+            )
+        ),
+    )
+
+    # Create prgm with the function
+    prgm = apl.Module((test_function,))
+
+    mod = APLInterpreter()(prgm)
+    result = mod.test_dot(NumpyBuffer(arr1), NumpyBuffer(arr2)).arr
+    assert np.array_equal(result, expected)
+    assert result.dtype == np.int64
+
+
+@pytest.mark.parametrize(
+    "input_array, expected",
+    [
+        (np.array([2, 3, 4], dtype=np.int64), np.array(24, dtype=np.int64)),
+        (np.array([5], dtype=np.int64), np.array(5, dtype=np.int64)),
+        (
+            np.array([[1, 2], [3, 4]], dtype=np.int64),
+            np.array([2, 12], dtype=np.int64),
+        ),
+        (
+            np.array([[7, 1], [2, 2]], dtype=np.int64),
+            np.array([7, 4], dtype=np.int64),
+        ),
+    ],
+)
+def test_mul_reduce(input_array, expected):
+    # Create variables
+    a_var = apl.Variable("A", NumpyBufferFType(np.int64, input_array.ndim))
+    b_var = apl.Variable("B", NumpyBufferFType(np.int64, max(0, input_array.ndim - 1)))
+
+    # Define test function
+    test_function = apl.Function(
+        apl.Variable("test_mul_reduce", b_var.type),
+        (a_var,),
+        apl.Block(
+            (
+                apl.Assign(
+                    lhs=b_var,
+                    rhs=apl.Call(
+                        op=apl.Literal("mul-reduce"),
+                        args=(a_var,),
+                    ),
+                ),
+                apl.Return(b_var),
+            )
+        ),
+    )
+
+    # Create prgm with the function
+    prgm = apl.Module((test_function,))
+    mod = APLInterpreter()(prgm)
+
+    result = mod.test_mul_reduce(NumpyBuffer(input_array)).arr
+    assert np.array_equal(result, expected)
+    assert result.dtype == np.int64

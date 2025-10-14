@@ -56,7 +56,6 @@ def test_mk_array(values, expected):
     Uncomment tests as you implement the function.
     """
 
-@pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
     "op, inputs, expected",
     [
@@ -182,7 +181,6 @@ def test_operations(op, inputs, expected):
     assert result.dtype == np.int64
 
 
-@pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
     "input_array, power, expected",
     [
@@ -248,7 +246,6 @@ def test_exp(input_array, power, expected):
     )
     assert result.dtype == np.int64
 
-@pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
     "input_array, expected",
     [
@@ -314,7 +311,6 @@ def test_transpose(input_array, expected):
     )
     assert result.dtype == np.int64
 
-@pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
     "range_val, expected",
     [
@@ -376,7 +372,7 @@ def test_iota(range_val, expected):
     assert result.dtype == np.int64
     assert expected.dtype == np.int64
 
-@pytest.mark.skip(reason="Delete this line once ops are implemented")
+#@pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
     "input_array, expected",
     [
@@ -445,7 +441,6 @@ def test_reduce(input_array, expected):
     assert result.dtype == np.int64
     assert expected.dtype == np.int64
 
-@pytest.mark.skip(reason="Delete this line once ops are implemented")
 @pytest.mark.parametrize(
     "shape, input_array, expected",
     [
@@ -497,6 +492,132 @@ def test_reshape(shape, input_array, expected):
 
     expected = mod_interpreter.test_reshape(NumpyBuffer(input_array), *shape).arr
     result = mod_codegen.test_reshape(NumpyBuffer(input_array), *shape).arr
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {expected}"
+    )
+    assert result.dtype == np.int64
+
+
+@pytest.mark.parametrize(
+    "a, b, expected",
+    [
+        (
+            np.array([1, 2, 3], dtype=np.int64),
+            np.array([4, 5, 6], dtype=np.int64),
+            np.array(32, dtype=np.int64),
+        ),
+        (
+            np.array([1], dtype=np.int64),
+            np.array([9], dtype=np.int64),
+            np.array(9, dtype=np.int64),
+        ),
+        (
+            np.array([2, 0, -1], dtype=np.int64),
+            np.array([3, 4, 5], dtype=np.int64),
+            np.array(1, dtype=np.int64),
+        ),
+    ],
+)
+def test_dot(a, b, expected):
+    a_var = apl.Variable("A", NumpyBufferFType(np.int64, 1))
+    b_var = apl.Variable("B", NumpyBufferFType(np.int64, 1))
+    result_var = apl.Variable("result", NumpyBufferFType(np.int64, 0))  # scalar output
+
+    test_function = apl.Function(
+        apl.Variable("test_dot", NumpyBufferFType(np.int64, 0)),
+        (a_var, b_var),
+        apl.Block(
+            (
+                apl.Assign(
+                    lhs=result_var,
+                    rhs=apl.Call(
+                        op=apl.Literal("dot"),
+                        args=(a_var, b_var),
+                    ),
+                ),
+                apl.Return(result_var),
+            )
+        ),
+    )
+
+    prgm = apl.Module((test_function,))
+
+    mod_interpreter = APLInterpreter()(prgm)
+    mod_codegen = APL2CCompiler()(prgm)
+
+    expected = mod_interpreter.test_dot(NumpyBuffer(a), NumpyBuffer(b)).arr
+    result = mod_codegen.test_dot(NumpyBuffer(a), NumpyBuffer(b)).arr
+
+    assert np.array_equal(result, expected), (
+        f"Codegen result {result} does not match interpreter result {expected}"
+    )
+    assert result.shape == expected.shape
+    assert result.dtype == np.int64
+
+
+@pytest.mark.parametrize(
+    "op, inputs, expected",
+    [
+        # mul-reduce: 1D cases
+        (
+            "mul-reduce",
+            (np.array([2, 3, 4], dtype=np.int64),),
+            np.array(24, dtype=np.int64),
+        ),
+        (
+            "mul-reduce",
+            (np.array([5], dtype=np.int64),),
+            np.array(5, dtype=np.int64),
+        ),
+        # mul-reduce: 2D cases
+        (
+            "mul-reduce",
+            (np.array([[1, 2], [3, 4]], dtype=np.int64),),
+            np.array([2, 12], dtype=np.int64),
+        ),
+        (
+            "mul-reduce",
+            (np.array([[7, 1], [2, 2]], dtype=np.int64),),
+            np.array([7, 4], dtype=np.int64),
+        ),
+    ],
+)
+
+def test_mul_reduce(op, inputs, expected):
+    ndim = inputs[0].ndim
+    input_var = apl.Variable("A", NumpyBufferFType(np.int64, ndim))
+    output_var = apl.Variable("B", NumpyBufferFType(np.int64, max(0, ndim - 1)))
+
+    safe_name = f"test_{op.replace('-', '_')}"
+
+    test_function = apl.Function(
+        apl.Variable(safe_name, output_var.type),
+        (input_var,),
+        apl.Block(
+            (
+                apl.Assign(
+                    lhs=output_var,
+                    rhs=apl.Call(
+                        op=apl.Literal(op),
+                        args=(input_var,),
+                    ),
+                ),
+                apl.Return(output_var),
+            )
+        ),
+    )
+
+    prgm = apl.Module((test_function,))
+    mod_interpreter = APLInterpreter()(prgm)
+    mod_codegen = APL2CCompiler()(prgm)
+
+    expected = getattr(mod_interpreter, safe_name)(
+        *[NumpyBuffer(x) if isinstance(x, np.ndarray) else x for x in inputs]
+    ).arr
+    result = getattr(mod_codegen, safe_name)(
+        *[NumpyBuffer(x) if isinstance(x, np.ndarray) else x for x in inputs]
+    ).arr
+
     assert np.array_equal(result, expected), (
         f"Codegen result {result} does not match interpreter result {expected}"
     )

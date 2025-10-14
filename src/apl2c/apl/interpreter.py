@@ -294,6 +294,63 @@ def _transpose(ctx, buf):
     """
     return NumpyBuffer(np.ascontiguousarray(buf.arr.T))
 
+def _dot(ctx, buf1, buf2):
+    """
+    Compute the dot product of two 1D arrays.
+
+    Parameters
+    ----------
+    ctx : Any
+        The interpreter context (not used in this function).
+    buf1 : NumpyBuffer
+        The first input array.
+    buf2 : NumpyBuffer
+        The second input array.
+
+    Returns
+    -------
+    NumpyBuffer
+        A scalar NumpyBuffer wrapping a 0D np.ndarray with dtype np.int64,
+        containing the dot product result.
+    """
+    arr1 = buf1.arr if isinstance(buf1, NumpyBuffer) else buf1
+    arr2 = buf2.arr if isinstance(buf2, NumpyBuffer) else buf2
+
+    if arr1.ndim != 1 or arr2.ndim != 1:
+        raise ValueError("Dot product requires two 1D arrays")
+    if arr1.shape[0] != arr2.shape[0]:
+        raise ValueError("Dot product requires arrays of equal length")
+
+    result = np.dot(arr1, arr2).astype(np.int64)
+    return NumpyBuffer(np.array(result, dtype=np.int64))
+
+def _mul_reduce(ctx, buf):
+    """
+    Multiply elements along the last dimension of the input array.
+
+    Parameters
+    ----------
+    ctx : Any
+        The interpreter context (not used in this function).
+    buf : NumpyBuffer
+        The input array to reduce.
+
+    Returns
+    -------
+    NumpyBuffer
+        A NumpyBuffer wrapping an np.ndarray with one fewer dimension than the
+        input (or a scalar wrapped in a 0D array for 1D input) and dtype np.int64,
+        containing the product of elements along the last dimension.
+    """
+    arr = buf.arr if isinstance(buf, NumpyBuffer) else buf
+    if arr.size == 0:
+        raise ValueError("Cannot reduce an empty array")
+    result = np.prod(arr, axis=-1, dtype=np.int64)
+    if np.isscalar(result):
+        result = np.array(result, dtype=np.int64)
+    return NumpyBuffer(result)
+
+
 
 dispatch: dict[str, Callable[..., Any]] = {
     "mkArray": _mk_array,
@@ -302,10 +359,13 @@ dispatch: dict[str, Callable[..., Any]] = {
     "add": _add,
     "sub": _sub,
     "reduce": _reduce,
+    "mul-reduce" : _mul_reduce,
     "iota": _iota,
     "reshape": _reshape,
     "transpose": _transpose,
+    "dot" : _dot,
 }
+
 
 
 class APLInterpreter:
